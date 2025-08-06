@@ -940,6 +940,16 @@ class FakeTensor(Tensor):
                 if any(map(check_cpu_device, (common_device, t.device))):
                     return
 
+            # if prefer_non_cpu is True, always take the non-CPU device
+            if torch._functorch.config.fake_tensor_prefer_non_cpu_device:
+                if check_cpu_device(common_device) and not check_cpu_device(t.device):
+                    common_device = t.device
+                    is_cpu_zero_dim = t_is_cpu_zero_dim
+                    return
+                elif not check_cpu_device(common_device) and check_cpu_device(t.device):
+                    # Keep the existing non-CPU device
+                    return
+
             # mismatching devices of non-zero dim tensors, throw
             # This might be valid behavior and need to be explicitly modeled, e.g. reshape_as
             raise RuntimeError(
